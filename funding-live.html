@@ -4,30 +4,55 @@
   <meta charset="utf-8" />
   <title>BingX Live Funding Rates</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f7fafc; }
+    h1 { font-size: 22px; margin-bottom: 10px; }
+    table { border-collapse: collapse; width: 100%; background: #fff; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f1f5f9; }
+    .positive { color: green; font-weight: bold; }
+    .negative { color: red; font-weight: bold; }
+  </style>
 </head>
 <body>
   <h1>BingX — Live Funding Rates</h1>
-  <p>Edit <code>API_BASE</code> with your Render URL (example: https://bingx-proxy.onrender.com)</p>
-  <table border="1" id="ratesTable">
+  <p><b>API Base:</b> <code>https://bingx-funding-live.onrender.com</code></p>
+  
+  <table id="ratesTable">
     <thead>
-      <tr><th>Symbol</th><th>Funding Rate</th><th>Next Funding</th><th>Updated</th></tr>
+      <tr>
+        <th>Symbol</th>
+        <th>Funding Rate</th>
+        <th>Next Funding</th>
+        <th>Last Updated</th>
+      </tr>
     </thead>
     <tbody></tbody>
   </table>
+
   <script>
-    const API_BASE = 'http://localhost:3000'; // change this to your Render URL
+    const API_BASE = 'https://bingx-funding-live.onrender.com';
     const FUNDING_PATH = '/funding';
 
-    const symbols = ['BTCUSDT','ETHUSDT','RSCUSDT'];
+    // yaha apne coins add kar sakte ho
+    const symbols = ['BTCUSDT','ETHUSDT','RSCUSDT','HUSDT'];
+
     const tbody = document.querySelector('#ratesTable tbody');
 
     async function fetchFunding(symbol){
-      try{
+      try {
         const res = await fetch(`${API_BASE}${FUNDING_PATH}?symbol=${symbol}`);
         return await res.json();
-      }catch(e){
-        return {error:e.message};
+      } catch(e){
+        return { error: e.message };
       }
+    }
+
+    function formatRate(rate){
+      const num = Number(rate);
+      if(isNaN(num)) return rate;
+      const pct = (num * 100).toFixed(6) + '%';
+      return num >= 0 ? `<span class="positive">${pct}</span>` : `<span class="negative">${pct}</span>`;
     }
 
     async function update(){
@@ -35,19 +60,28 @@
       for(const s of symbols){
         const row = document.createElement('tr');
         const data = await fetchFunding(s);
-        let rate='-', next='-', updated=new Date().toISOString();
+        let rate = '-', next = '-', updated = new Date().toISOString();
+
         if(data && data.data){
-          rate = data.data.fundingRate;
-          next = new Date(Number(data.data.nextFundingTime)).toISOString();
+          rate = formatRate(data.data.fundingRate);
+          if(data.data.nextFundingTime){
+            next = new Date(Number(data.data.nextFundingTime)).toISOString();
+          }
         } else if(data.error){
-          rate = 'Error: '+data.error;
+          rate = 'Error: ' + data.error;
         }
-        row.innerHTML = `<td>${s}</td><td>${rate}</td><td>${next}</td><td>${updated}</td>`;
+
+        row.innerHTML = `
+          <td>${s}</td>
+          <td>${rate}</td>
+          <td>${next}</td>
+          <td>${updated}</td>
+        `;
         tbody.appendChild(row);
       }
     }
 
-    setInterval(update,5000);
+    setInterval(update, 5000); // har 5 sec update
     update();
   </script>
 </body>
