@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>BingX Live Funding Rates</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+</head>
+<body>
+  <h1>BingX — Live Funding Rates</h1>
+  <p>Edit <code>API_BASE</code> with your Render URL (example: https://bingx-proxy.onrender.com)</p>
+  <table border="1" id="ratesTable">
+    <thead>
+      <tr><th>Symbol</th><th>Funding Rate</th><th>Next Funding</th><th>Updated</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <script>
+    const API_BASE = 'http://localhost:3000'; // change this to your Render URL
+    const FUNDING_PATH = '/funding';
+
+    const symbols = ['BTCUSDT','ETHUSDT','RSCUSDT'];
+    const tbody = document.querySelector('#ratesTable tbody');
+
+    async function fetchFunding(symbol){
+      try{
+        const res = await fetch(`${API_BASE}${FUNDING_PATH}?symbol=${symbol}`);
+        return await res.json();
+      }catch(e){
+        return {error:e.message};
+      }
+    }
+
+    async function update(){
+      tbody.innerHTML = '';
+      for(const s of symbols){
+        const row = document.createElement('tr');
+        const data = await fetchFunding(s);
+        let rate='-', next='-', updated=new Date().toISOString();
+        if(data && data.data){
+          rate = data.data.fundingRate;
+          next = new Date(Number(data.data.nextFundingTime)).toISOString();
+        } else if(data.error){
+          rate = 'Error: '+data.error;
+        }
+        row.innerHTML = `<td>${s}</td><td>${rate}</td><td>${next}</td><td>${updated}</td>`;
+        tbody.appendChild(row);
+      }
+    }
+
+    setInterval(update,5000);
+    update();
+  </script>
+</body>
+</html>
